@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Proof-of-Loyalty Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.1/dist/ethers.umd.min.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: #f4f4f4;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        button { 
+            margin: 10px 0; 
+            padding: 10px; 
+            width: 100%; 
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        input, textarea { 
+            width: 100%; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+        }
+        .activity-section {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div id="walletConnection" class="card">
+        <h2>Loyalty Rewards Platform</h2>
+        <input type="text" id="rewardBaseAddress" placeholder="Enter base reward address">
+        <button id="connectWallet">Connect Wallet</button>
+        <p id="walletAddress"></p>
+    </div>
+
+    <div id="loyaltyDashboard" style="display:none;" class="card">
+        <h3>Loyalty Status</h3>
+        <p>Total Points: <span id="totalPoints">0</span></p>
+
+        <div class="activity-section">
+            <h4>🚀 Platform Interaction</h4>
+            <button onclick="simulateActivity('platformInteraction')">Complete Platform Task</button>
+            <p id="platformInteractionResult"></p>
+        </div>
+
+        <div class="activity-section">
+            <h4>💰 Staking Challenge</h4>
+            <input type="number" id="stakeAmount" placeholder="Enter stake amount">
+            <button onclick="simulateStaking()">Start Staking</button>
+            <p id="stakingResult"></p>
+        </div>
+
+        <div class="activity-section">
+            <h4>📝 Community Contribution</h4>
+            <textarea id="contributionText" placeholder="Write your contribution"></textarea>
+            <button onclick="submitContribution()">Submit Contribution</button>
+            <p id="contributionResult"></p>
+        </div>
+
+        <button id="redeemPointsBtn">Redeem Rewards</button>
+        <p id="redeemResult"></p>
+    </div>
+
+    <script>
+        let contract, signer, userAddress, baseRewardAddress, totalPoints = 0;
+
+        const contractAddress = '0x7b96aF9Bd211cBf6BA5b0dd53aa61Dc5806b6AcE';
+        const contractABI = [
+            "function redeemPoints(address baseAddress, uint256 points) public",
+            "function earnLoyaltyPoints(address user, uint256 points, string memory action) public",
+            "function getLoyaltyPoints(address user) public view returns (uint256)"
+        ];
+
+        const connectWallet = async () => {
+            baseRewardAddress = document.getElementById('rewardBaseAddress').value;
+            if (!baseRewardAddress) {
+                alert('Please enter a base reward address');
+                return;
+            }
+
+            if (window.ethereum) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0xaa36a7' }]
+                    });
+
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const provider = new ethers.BrowserProvider(window.ethereum);
+                    signer = await provider.getSigner();
+                    userAddress = await signer.getAddress();
+                    
+                    contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+                    document.getElementById('walletConnection').style.display = 'none';
+                    document.getElementById('loyaltyDashboard').style.display = 'block';
+                } catch (error) {
+                    alert('Connection failed: ' + error.message);
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        };
+
+        function simulateActivity(type) {
+            const points = Math.floor(Math.random() * 50) + 10;
+            const result = `Completed platform task! Earned ${points} loyalty points`;
+            document.getElementById(`platformInteractionResult`).textContent = result;
+            updatePoints(points);
+        }
+
+        function simulateStaking() {
+            const stakeAmount = document.getElementById('stakeAmount').value;
+            if (stakeAmount > 0) {
+                const points = Math.floor(stakeAmount / 10);
+                const result = `Staked ${stakeAmount} tokens! Earned ${points} loyalty points`;
+                document.getElementById('stakingResult').textContent = result;
+                updatePoints(points);
+            }
+        }
+
+        function submitContribution() {
+            const contribution = document.getElementById('contributionText').value;
+            if (contribution.trim() !== '') {
+                const points = Math.floor(Math.random() * 50) + 10;
+                const result = `Contribution accepted! Earned ${points} loyalty points`;
+                document.getElementById('contributionResult').textContent = result;
+                updatePoints(points);
+            }
+        }
+
+        function updatePoints(newPoints) {
+            totalPoints += newPoints;
+            document.getElementById('totalPoints').textContent = totalPoints;
+        }
+
+        async function redeemPoints() {
+            if (!contract) return;
+
+            try {
+                const points = 100; // Fixed redemption amount
+                await contract.redeemPoints(baseRewardAddress, points);
+                
+                document.getElementById('redeemResult').textContent = 
+                    `Redeemed ${points} points to ${baseRewardAddress}`;
+            } catch (error) {
+                document.getElementById('redeemResult').textContent = 
+                    'Redemption failed: ' + error.message;
+            }
+        }
+
+        document.getElementById('connectWallet').addEventListener('click', connectWallet);
+        document.getElementById('redeemPointsBtn').addEventListener('click', redeemPoints);
+    </script>
+</body>
+</html>
